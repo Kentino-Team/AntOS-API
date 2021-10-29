@@ -5,6 +5,7 @@ from flask_cors import CORS
 from resources.worker import Worker
 from resources.command import Command
 from resources.farm import Farm
+from resources.stat import Stat
 
 app = Flask(__name__)
 
@@ -16,7 +17,8 @@ cors = CORS(app)
 
 api.add_resource(Worker, '/worker/api')
 api.add_resource(Command, '/command')
-api.add_resource(Farm, '/farm')
+api.add_resource(Farm, '/farm/<id>', '/farm/')
+api.add_resource(Stat, '/stat/<rig_id>')
 
 
 @app.route('/')
