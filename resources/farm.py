@@ -1,7 +1,8 @@
-from flask_restful import Resource
+from flask_restful import Resource, request
 from config.db import db
 import json
 from bson import json_util, ObjectId
+from flask_cors import cross_origin
 
 
 class Farm(Resource):
@@ -37,6 +38,17 @@ class Farm(Resource):
             farm = self.merge_work_stats(farm)[0]
             return farm, 200
 
+    def post(self, id=""):
+        if id != "":
+            return {"error": "method not allowed"}, 405
+        else:
+            db.farms.insert_one(request.json)
+            return {"message": "success"}, 201
+
+    @cross_origin()
+    def options(self):
+        return 200
+
     def merge_work_stats(self, farms):
         for idxf, farm in enumerate(farms):
             for idxs, stats in enumerate(farm['stats']):
@@ -44,6 +56,6 @@ class Farm(Resource):
                 for idxw, worker in enumerate(farm['workers']):
                     id = worker['id']
                     if rig_id == id:
-                        farms[idxf]['workers'][idxw] |= stats
+                        farms[idxf]['workers'][idxw].update(stats)
             del farms[idxf]['stats']
         return farms

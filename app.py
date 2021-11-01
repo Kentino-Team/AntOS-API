@@ -7,7 +7,7 @@ from resources.command import Command
 from resources.farm import Farm
 from resources.stat import Stat
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='', static_folder='web/static', template_folder='web/templates')
 
 app.config['MONGO_URI'] = "mongodb://admin:Xolider500_%40@vicart.ovh/antos?authSource=admin"
 
