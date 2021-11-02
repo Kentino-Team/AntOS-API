@@ -4,38 +4,20 @@ import json
 from bson import json_util, ObjectId
 from flask_cors import cross_origin
 
+farm_aggregation = [{"$lookup":{"from":'stats',"localField":"workers.id","foreignField":"rig_id","as":'stats'}},{"$project":{"inter":{"$map":{"input":"$workers","as":"one","in":{"$mergeObjects":["$$one",{"$arrayElemAt":[{"$filter":{"input":"$stats","as":"two","cond":{"$eq":["$$two.rig_id","$$one.id"]}}},0]}]}}}, "name": 1}},{"$lookup":{"from":"hardwares","localField":"inter.rig_id","foreignField":"rig_id","as":"hardwares"}},{"$project":{"workers":{"$map":{"input":"$inter","as":"one","in":{"$mergeObjects":["$$one",{"$arrayElemAt":[{"$filter":{"input":"$stats","as":"two","cond":{"$eq":["$$two.rig_id","$$one.id"]}}},0]}]}}}, "name": 1}}]
+
 
 class Farm(Resource):
 
     def get(self, id=""):
         if id == "":
-            farms = db.farms.aggregate([{
-                "$lookup": {
-                    "from": 'stats',
-                    "localField": "workers.id",
-                    "foreignField": "rig_id",
-                    "as": 'stats'
-                }
-            }])
+            farms = db.farms.aggregate(farm_aggregation[:3])
             farms = json.loads(json_util.dumps(farms))
-            farms = self.merge_work_stats(farms)
             return farms, 200
         else:
-            farm = db.farms.aggregate([{
-                "$match": {
-                    "_id": ObjectId(id)
-                }
-            },
-                {
-                    "$lookup": {
-                        "from": 'stats',
-                        "localField": "workers.id",
-                        "foreignField": "rig_id",
-                        "as": 'stats'
-                    }
-                }])
-            farm = json.loads(json_util.dumps(farm))
-            farm = self.merge_work_stats(farm)[0]
+            farm_match = {"$match": {"_id": ObjectId(id)}}
+            farm = db.farms.aggregate([farm_match, *farm_aggregation])
+            farm = json.loads(json_util.dumps(farm))[0]
             return farm, 200
 
     def post(self, id=""):
@@ -48,14 +30,3 @@ class Farm(Resource):
     @cross_origin()
     def options(self):
         return 200
-
-    def merge_work_stats(self, farms):
-        for idxf, farm in enumerate(farms):
-            for idxs, stats in enumerate(farm['stats']):
-                rig_id = stats['rig_id']
-                for idxw, worker in enumerate(farm['workers']):
-                    id = worker['id']
-                    if rig_id == id:
-                        farms[idxf]['workers'][idxw].update(stats)
-            del farms[idxf]['stats']
-        return farms
