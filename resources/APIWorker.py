@@ -6,7 +6,7 @@ from bson.objectid import ObjectId
 import json
 
 
-class Worker(Resource):
+class APIWorker(Resource):
 
     def post(self):
         if not all(k in request.args.keys() for k in ('id_rig', 'method')):

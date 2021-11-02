@@ -2,10 +2,11 @@ from flask import Flask, render_template
 from flask_restful import Api
 from flask_cors import CORS
 
-from resources.worker import Worker
+from resources.APIWorker import APIWorker
 from resources.command import Command
 from resources.farm import Farm
 from resources.stat import Stat
+from resources.worker import Worker
 
 app = Flask(__name__, static_url_path='', static_folder='web/static', template_folder='web/templates')
 
@@ -15,10 +16,11 @@ api = Api(app)
 
 cors = CORS(app)
 
-api.add_resource(Worker, '/worker/api')
+api.add_resource(APIWorker, '/worker/api')
 api.add_resource(Command, '/command')
 api.add_resource(Farm, '/farm/<id>', '/farm/')
 api.add_resource(Stat, '/stat/<rig_id>')
+api.add_resource(Worker, '/worker')
 
 
 @app.route('/')
