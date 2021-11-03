@@ -9,15 +9,20 @@ farm_aggregation = [{"$lookup":{"from":'stats',"localField":"workers.id","foreig
 
 class Farm(Resource):
 
-    def get(self, id=""):
-        if id == "":
+    def get(self, id="", rig=""):
+        if id == "" and rig == "":
             farms = db.farms.aggregate(farm_aggregation)
             farms = json.loads(json_util.dumps(farms))
             return farms, 200
-        else:
+        elif id != "" and rig == "":
             farm_match = {"$match": {"_id": ObjectId(id)}}
             farm = db.farms.aggregate([farm_match, *farm_aggregation])
-            print([farm_match, *farm_aggregation])
+            farm = json.loads(json_util.dumps(farm))[0]
+            return farm, 200
+        else:
+            farm_match = {"$match": {"_id": ObjectId(id)}}
+            worker_project = {"$project": {"workers": {"$filter": {"input": "$workers", "as": "item", "cond": {"$eq": ["$$item.id", int(rig)]}}}, "name": 1}}
+            farm = db.farms.aggregate([farm_match, worker_project, *farm_aggregation])
             farm = json.loads(json_util.dumps(farm))[0]
             return farm, 200
 

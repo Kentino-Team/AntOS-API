@@ -8,6 +8,7 @@ flask = "*"
 flask-restful = "*"
 flask-pymongo = "*"
 flask-cors = "*"
+flask-jwt = "*"
 
 [dev-packages]
 

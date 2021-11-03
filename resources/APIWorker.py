@@ -90,8 +90,8 @@ class APIWorker(Resource):
         return worker
 
     def generate_config(self, rig_id, passwd, farm):
-        return "HIVE_HOST_URL=\"http://192.168.83.1\"\n" \
-               "API_HOST_URL=\"http://192.168.83.1\"\n" \
+        return "HIVE_HOST_URL=\"http://192.168.0.104\"\n" \
+               "API_HOST_URL=\"http://192.168.0.104\"\n" \
                f"RIG_ID={rig_id}\n" \
                f"RIG_PASSWD=\"{passwd}\"\n" \
                f"WORKER_NAME=\"{farm['workers'][0]['name']}\"\n" \
