@@ -4,6 +4,7 @@ from config.db import db
 from bson import json_util
 from bson.objectid import ObjectId
 import json
+from datetime import datetime
 
 
 class APIWorker(Resource):
@@ -47,9 +48,8 @@ class APIWorker(Resource):
                 "rig_id": rig_id
             }, {
                 "rig_id": rig_id,
-                "stats": data[
-
-                    'params']
+                "timestamp": datetime.now(),
+                "stats": data['params']
             }, True)
             command = db.commands.find_one({
                 "rig_id": rig_id
@@ -90,8 +90,8 @@ class APIWorker(Resource):
         return worker
 
     def generate_config(self, rig_id, passwd, farm):
-        return "HIVE_HOST_URL=\"http://192.168.0.104\"\n" \
-               "API_HOST_URL=\"http://192.168.0.104\"\n" \
+        return "HIVE_HOST_URL=\"http://192.168.89.88\"\n" \
+               "API_HOST_URL=\"http://192.168.89.88\"\n" \
                f"RIG_ID={rig_id}\n" \
                f"RIG_PASSWD=\"{passwd}\"\n" \
                f"WORKER_NAME=\"{farm['workers'][0]['name']}\"\n" \

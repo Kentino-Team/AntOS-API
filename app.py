@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 from flask_restful import Api
 from flask_cors import CORS
+import security.jwt as jwt
 
 from resources.APIWorker import APIWorker
 from resources.command import Command
@@ -17,13 +18,14 @@ api = Api(app)
 
 cors = CORS(app)
 
+jwt.init_jwt(app)
+
 api.add_resource(APIWorker, '/worker/api')
 api.add_resource(Command, '/command')
 api.add_resource(Farm, '/farm/<id>/<rig>', '/farm/<id>', '/farm/')
 api.add_resource(Stat, '/stat/<rig_id>')
 api.add_resource(Worker, '/worker')
-api.add_resource(UserLogin, '/user/login')
-
+api.add_resource(UserLogin, '/user/register')
 
 @app.route('/')
 def hello_world():  # put application's code here
