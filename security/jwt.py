@@ -3,6 +3,7 @@ from config.db import db
 from bson import ObjectId, json_util
 from flask import Flask
 import json
+from models.User import User
 
 
 def auth(username, password):
@@ -10,18 +11,22 @@ def auth(username, password):
         "username": username,
         "pwd": password
     })
-    user['id'] = str(user['_id'])
+    if user is None:
+        return None
+    user = json.loads(json_util.dumps(user))
+    user = User(user['_id']['$oid'], user['username'], user['pwd'])
     return user
 
 
 def identity(payload):
-    print(payload)
     userid = payload['identity']
     user = db.users.find_one({
         "_id": ObjectId(userid)
     })
+    if user is None:
+        return None
     user = json.loads(json_util.dumps(user))
-    user.update({id: user['_id']['$oid']})
+    user = User(user['_id']['$oid'], user['username'], user['pwd'])
     return user
 
 
