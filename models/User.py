@@ -6,3 +6,10 @@ class User:
 
     def __str__(self):
         return "User(id='%s')" % self.id
+
+    def jsonify(self):
+        return {
+            "username": self.username,
+            "passord": self.password,
+            "id": self.id
+        }

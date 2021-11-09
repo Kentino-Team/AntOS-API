@@ -4,6 +4,7 @@ from bson import ObjectId, json_util
 from flask import Flask
 import json
 from models.User import User
+from datetime import timedelta
 
 
 def auth(username, password):
@@ -32,5 +33,6 @@ def identity(payload):
 
 def init_jwt(app: Flask):
     app.config['SECRET_KEY'] = 'teset'
+    app.config['JWT_EXPIRATION_DELTA'] = timedelta(seconds=86400)
     app.config['JWT_AUTH_URL_RULE'] = '/user/login'
     JWT(app, auth, identity)
