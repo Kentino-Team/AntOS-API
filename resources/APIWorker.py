@@ -28,8 +28,8 @@ class APIWorker(Resource):
                 "jsonrpc": "2.0",
                 "result": {
                     "rig_name": farm['workers'][0]['name'],
-                    "repository_list": "deb http://download.hiveos.farm/repo/binary /\n"
-                                       "deb http://cz.archive.ubuntu.com/ubuntu/ bionic main\n"
+                    "repository_list": "deb http://vicart.ovh:8081/repository/AntOS_APT/ bionic main\n"
+                                       "deb http://vicart.ovh:8081/repository/AntOS_APT_Proxy bionic main\n"
                                        "deb-src http://cz.archive.ubuntu.com/ubuntu/ bionic main\n",
                     "config": self.generate_config(rig_id, password, farm),
                     "wallet": self.generate_wallet(rig_id, farm),

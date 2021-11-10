@@ -10,6 +10,8 @@ from resources.stat import Stat
 from resources.worker import Worker
 from resources.user_login import UserLogin
 from resources.security import Security
+from resources.wallet import Wallet
+from resources.flight_sheet import FlightSheet
 
 app = Flask(__name__, static_url_path='', static_folder='web/static', template_folder='web/templates')
 
@@ -28,6 +30,8 @@ api.add_resource(Stat, '/stat/<rig_id>')
 api.add_resource(Worker, '/worker')
 api.add_resource(UserLogin, '/user/register')
 api.add_resource(Security, '/security')
+api.add_resource(Wallet, '/wallet')
+api.add_resource(FlightSheet, '/flightsheet')
 
 @app.route('/')
 def hello_world():  # put application's code here
