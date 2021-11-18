@@ -30,7 +30,7 @@ api.add_resource(Stat, '/stat/<rig_id>')
 api.add_resource(Worker, '/worker')
 api.add_resource(UserLogin, '/user/register')
 api.add_resource(Security, '/security')
-api.add_resource(Wallet, '/wallet')
+api.add_resource(Wallet, '/wallet/<id>', '/wallet')
 api.add_resource(FlightSheet, '/flightsheet')
 
 @app.route('/')
