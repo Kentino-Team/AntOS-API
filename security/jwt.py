@@ -4,7 +4,8 @@ from bson import ObjectId, json_util
 from flask import Flask
 import json
 from models.User import User
-from datetime import timedelta
+from datetime import timedelta, datetime
+from flask_restful import request
 
 
 def auth(username, password):
@@ -15,7 +16,19 @@ def auth(username, password):
     if user is None:
         return None
     user = json.loads(json_util.dumps(user))
-    user = User(user['_id']['$oid'], user['username'], user['pwd'])
+    user = User(user['_id']['$oid'], user['username'], user['pwd'], user['fullname'], user['email'], user['auth_history'])
+
+    db.users.update_one({"_id": ObjectId(user.id)}, {
+        "$push": {
+            "auth_history": {
+                "os": request.user_agent.platform,
+                "browser": request.user_agent.browser,
+                "version": request.user_agent.version,
+                "ip": request.remote_addr,
+                "timestamp": datetime.now()
+            }
+        }
+    })
     return user
 
 
@@ -27,7 +40,7 @@ def identity(payload):
     if user is None:
         return None
     user = json.loads(json_util.dumps(user))
-    user = User(user['_id']['$oid'], user['username'], user['pwd'])
+    user = User(user['_id']['$oid'], user['username'], user['pwd'], user['fullname'], user['email'], user['auth_history'])
     return user
 
 
