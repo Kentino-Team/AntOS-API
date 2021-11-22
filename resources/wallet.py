@@ -10,13 +10,12 @@ class Wallet(Resource):
     @jwt_required()
     def get(self, id=""):
         user_id = current_identity.id
+        global wallets
         if id == "":
             wallets = db.wallets.find({
                 "user_id": user_id,
                 "farm_id": ""
             })
-            wallets = json.loads(json_util.dumps(wallets))
-            return wallets, 200
         else:
             wallets = db.wallets.find({
                 "user_id": user_id,
@@ -24,8 +23,8 @@ class Wallet(Resource):
                     "$in": ["", id]
                 }
             })
-            wallets = json.loads(json_util.dumps(wallets))
-            return wallets, 200
+        wallets = json.loads(json_util.dumps(wallets))
+        return wallets, 200
 
     @jwt_required()
     def post(self, id=""):
