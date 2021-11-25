@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, Response
 from flask_restful import Api
 from flask_cors import CORS
 import security.jwt as jwt
@@ -13,6 +13,8 @@ from resources.security import Security
 from resources.wallet import Wallet
 from resources.flight_sheet import FlightSheet
 from resources.user_profile import UserProfile
+from resources.configres import Config
+from resources.pools import Pools
 
 app = Flask(__name__, static_url_path='', static_folder='web/static', template_folder='web/templates')
 
@@ -34,10 +36,21 @@ api.add_resource(Security, '/security')
 api.add_resource(Wallet, '/wallet/<id>', '/wallet')
 api.add_resource(FlightSheet, '/flightsheet/<id>', '/flightsheet')
 api.add_resource(UserProfile, '/user/profile')
+api.add_resource(Config, '/config/<rig_id>')
+api.add_resource(Pools, '/pools')
+
 
 @app.route('/')
 def hello_world():  # put application's code here
     return render_template('index.html')
+
+
+@app.route('/.well-known/acme-challenge/<challenge>')
+def letsencrypt(challenge):
+    challenge_response = {
+        "W-HaV9w8DyBhGe4TYcPpla7pPyeMWiaPO-wFbGOEiRU": "W-HaV9w8DyBhGe4TYcPpla7pPyeMWiaPO-wFbGOEiRU.L-DTU4hJTQ5PkdHP_GzX6RR9FTeeLa7puGeOnu350Ho"
+    }
+    return Response(challenge_response[challenge], mimetype='text/plain')
 
 
 if __name__ == '__main__':

@@ -28,7 +28,8 @@ class Command(Resource):
                     "command": "exec",
                     "exec": command
                 }
-            ]
+            ],
+            "run": True
         })
         return 200
 

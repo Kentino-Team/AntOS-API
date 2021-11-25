@@ -52,9 +52,11 @@ class APIWorker(Resource):
                 "stats": data['params']
             }, True)
             command = db.commands.find_one({
-                "rig_id": rig_id
+                "rig_id": rig_id,
+                "run": False
             }, {
-                "rig_id": 0
+                "rig_id": 0,
+                "run": 0
             })
             if command is None:
                 return {
@@ -90,8 +92,8 @@ class APIWorker(Resource):
         return worker
 
     def generate_config(self, rig_id, passwd, farm):
-        return "HIVE_HOST_URL=\"http://172.19.64.1\"\n" \
-               "API_HOST_URL=\"http://172.19.64.1\"\n" \
+        return "HIVE_HOST_URL=\"http://172.29.128.1\"\n" \
+               "API_HOST_URL=\"http://172.29.128.1\"\n" \
                f"RIG_ID={rig_id}\n" \
                f"RIG_PASSWD=\"{passwd}\"\n" \
                f"WORKER_NAME=\"{farm['workers'][0]['name']}\"\n" \

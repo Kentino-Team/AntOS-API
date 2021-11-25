@@ -1,8 +1,9 @@
-from flask_restful import Resource
+from flask_restful import Resource, request
 from flask_jwt import jwt_required, current_identity
+from flask_cors import cross_origin
 from config.db import db
 import json
-from bson import json_util
+from bson import json_util, ObjectId
 
 
 class FlightSheet(Resource):
@@ -49,3 +50,24 @@ class FlightSheet(Resource):
             ])
         flight_sheets = json.loads(json_util.dumps(flight_sheets))
         return flight_sheets, 200
+
+    @jwt_required()
+    def post(self, id=""):
+        fs = request.json['fs']
+        fs.update({"wallet_id": ObjectId(fs['wallet_id']), "user_id": current_identity.id, "farm_id": id})
+        db.flightsheets.insert_one(fs)
+        return {}, 201
+
+    @jwt_required()
+    def delete(self):
+        fs = request.args['fs']
+        db.flightsheets.delete_one({
+            "user_id": current_identity.id,
+            "_id": ObjectId(fs)
+        })
+        return {}, 200
+
+    @cross_origin()
+    def options(self):
+        return 200
+

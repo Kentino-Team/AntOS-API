@@ -9,7 +9,7 @@ flask-restful = "*"
 flask-pymongo = "*"
 flask-cors = "*"
 flask-jwt = "*"
-apscheduler = "*"
+pymongo = "*"
 
 [dev-packages]
 

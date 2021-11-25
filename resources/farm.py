@@ -5,7 +5,7 @@ from bson import json_util, ObjectId
 from flask_cors import cross_origin
 from flask_jwt import jwt_required, current_identity
 
-farm_aggregation = [{"$lookup":{"from":'stats',"localField":"workers.id","foreignField":"rig_id","as":'stats'}},{"$project":{"inter":{"$map":{"input":"$workers","as":"one","in":{"$mergeObjects":["$$one",{"$arrayElemAt":[{"$filter":{"input":"$stats","as":"two","cond":{"$eq":["$$two.rig_id","$$one.id"]}}},0]}]}}}, "name": 1}},{"$lookup":{"from":"hardwares","localField":"inter.rig_id","foreignField":"rig_id","as":"hardwares"}},{"$project":{"workers":{"$map":{"input":"$inter","as":"one","in":{"$mergeObjects":["$$one",{"$arrayElemAt":[{"$filter":{"input":"$hardwares","as":"two","cond":{"$eq":["$$two.rig_id","$$one.id"]}}},0]}]}}}, "name": 1}}]
+farm_aggregation =[{"$lookup":{"from":"hardwares","localField":"workers.id","foreignField":"rig_id","as":"hardwares"}},{"$project":{"inter":{"$map":{"input":"$workers","as":"one","in":{"$mergeObjects":["$$one",{"$arrayElemAt":[{"$filter":{"input":"$hardwares","as":"two","cond":{"$eq":["$$two.rig_id","$$one.id"]}}},0]}]}}},"name":1}},{"$lookup":{"from":'stats',"localField":"inter.id","foreignField":"rig_id","as":'stats'}},{"$project":{"workers":{"$map":{"input":"$inter","as":"one","in":{"$mergeObjects":["$$one",{"$arrayElemAt":[{"$filter":{"input":"$stats","as":"two","cond":{"$eq":["$$two.rig_id","$$one.id"]}}},0]}]}}},"name":1}}]
 
 
 class Farm(Resource):
