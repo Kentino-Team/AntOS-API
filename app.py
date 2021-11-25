@@ -48,7 +48,7 @@ def hello_world():  # put application's code here
 @app.route('/.well-known/acme-challenge/<challenge>')
 def letsencrypt(challenge):
     challenge_response = {
-        "W-HaV9w8DyBhGe4TYcPpla7pPyeMWiaPO-wFbGOEiRU": "W-HaV9w8DyBhGe4TYcPpla7pPyeMWiaPO-wFbGOEiRU.L-DTU4hJTQ5PkdHP_GzX6RR9FTeeLa7puGeOnu350Ho"
+        "MPP2YDfEKS4gU_SAB0cisQYzuNWYe6KQqU5TNtv_Vzc": "MPP2YDfEKS4gU_SAB0cisQYzuNWYe6KQqU5TNtv_Vzc.L-DTU4hJTQ5PkdHP_GzX6RR9FTeeLa7puGeOnu350Ho"
     }
     return Response(challenge_response[challenge], mimetype='text/plain')
 
