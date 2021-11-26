@@ -61,6 +61,11 @@ class FlightSheet(Resource):
     @jwt_required()
     def delete(self):
         fs = request.args['fs']
+        is_linked = db.config.find_one({
+            "flightsheet": fs
+        })
+        if is_linked is not None:
+            return {"error": "This flightsheet"}, 403
         db.flightsheets.delete_one({
             "user_id": current_identity.id,
             "_id": ObjectId(fs)

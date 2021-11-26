@@ -15,6 +15,7 @@ from resources.flight_sheet import FlightSheet
 from resources.user_profile import UserProfile
 from resources.configres import Config
 from resources.pools import Pools
+from resources.miner import Miner
 
 app = Flask(__name__, static_url_path='', static_folder='web/static', template_folder='web/templates')
 
@@ -38,19 +39,12 @@ api.add_resource(FlightSheet, '/flightsheet/<id>', '/flightsheet')
 api.add_resource(UserProfile, '/user/profile')
 api.add_resource(Config, '/config/<rig_id>')
 api.add_resource(Pools, '/pools')
+api.add_resource(Miner, '/miners')
 
 
 @app.route('/')
 def hello_world():  # put application's code here
     return render_template('index.html')
-
-
-@app.route('/.well-known/acme-challenge/<challenge>')
-def letsencrypt(challenge):
-    challenge_response = {
-        "MPP2YDfEKS4gU_SAB0cisQYzuNWYe6KQqU5TNtv_Vzc": "MPP2YDfEKS4gU_SAB0cisQYzuNWYe6KQqU5TNtv_Vzc.L-DTU4hJTQ5PkdHP_GzX6RR9FTeeLa7puGeOnu350Ho"
-    }
-    return Response(challenge_response[challenge], mimetype='text/plain')
 
 
 if __name__ == '__main__':

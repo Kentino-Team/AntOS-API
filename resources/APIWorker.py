@@ -5,6 +5,7 @@ from bson import json_util
 from bson.objectid import ObjectId
 import json
 from datetime import datetime
+from functools import reduce
 
 
 class APIWorker(Resource):
@@ -24,15 +25,22 @@ class APIWorker(Resource):
             db.hardwares.update({
                 "rig_id": rig_id
             }, {"rig_id": rig_id, "hardwares": request.json['params']}, True)
+
+            config = db.config.aggregate(
+                [{"$match": {"rig_id": rig_id}}, {"$set": {"fs_id": {"$toObjectId": "$flightsheet"}}},
+                 {"$lookup": {"from": "flightsheets", "localField": "fs_id", "foreignField": "_id", "as": "fs"}},
+                 {"$project": {"fs": {"$arrayElemAt": ["$fs", 0]}, "rig_id": 1}}])
+            config = json.loads(json_util.dumps(config))
+
             resp = {
                 "jsonrpc": "2.0",
                 "result": {
                     "rig_name": farm['workers'][0]['name'],
-                    "repository_list": "deb http://vicart.ovh:8081/repository/AntOS_APT/ bionic main\n"
-                                       "deb http://vicart.ovh:8081/repository/AntOS_APT_Proxy bionic main\n"
+                    "repository_list": "deb http://vicart.ovh:8081/repository/antos bionic main\n"
+                                       "deb http://vicart.ovh:8081/repository/antos-proxy bionic main\n"
                                        "deb-src http://cz.archive.ubuntu.com/ubuntu/ bionic main\n",
-                    "config": self.generate_config(rig_id, password, farm),
-                    "wallet": self.generate_wallet(rig_id, farm),
+                    "config": self.generate_config(rig_id, password, farm, config),
+                    "wallet": self.generate_wallet(config, farm),
                     "autofan": "en"
                 },
                 "id": None
@@ -60,11 +68,11 @@ class APIWorker(Resource):
             })
             if command is None:
                 return {
-                    "jsonrpc": "2.0",
-                    "result": {
-                        "command": "OK"
-                    }
-                }, 200
+                           "jsonrpc": "2.0",
+                           "result": {
+                               "command": "OK"
+                           }
+                       }, 200
 
             command = json.loads(json_util.dumps(command))
 
@@ -72,9 +80,9 @@ class APIWorker(Resource):
                 "_id": ObjectId(command['_id']['$oid'])
             })
             return {
-                "jsonrpc": "2.0",
-                "result": command
-            }, 200
+                       "jsonrpc": "2.0",
+                       "result": command
+                   }, 200
         if method == 'message':
             print(request.json)
         return {"data": "error"}, 200
@@ -91,21 +99,41 @@ class APIWorker(Resource):
             return None
         return worker
 
-    def generate_config(self, rig_id, passwd, farm):
-        return "HIVE_HOST_URL=\"http://172.29.128.1\"\n" \
-               "API_HOST_URL=\"http://172.29.128.1\"\n" \
-               f"RIG_ID={rig_id}\n" \
-               f"RIG_PASSWD=\"{passwd}\"\n" \
-               f"WORKER_NAME=\"{farm['workers'][0]['name']}\"\n" \
-               f"FARM_ID={farm['_id']}\n" \
-               "TIMEZONE=\"Europe/Prague\"\n" \
-               "WD_ENABLED=0\n" \
-               "MINER=\"nanominer\""
+    def generate_config(self, rig_id, passwd, farm, config):
+        base_config = "HIVE_HOST_URL=\"http://172.29.128.1\"\n" \
+                      "API_HOST_URL=\"http://172.29.128.1\"\n" \
+                      f"RIG_ID={rig_id}\n" \
+                      f"RIG_PASSWD=\"{passwd}\"\n" \
+                      f"WORKER_NAME=\"{farm['workers'][0]['name']}\"\n" \
+                      f"FARM_ID={farm['_id']}\n" \
+                      "TIMEZONE=\"Europe/Prague\"\n" \
+                      "WD_ENABLED=0\n"
 
-    def generate_wallet(self, rig_id, farm):
-        return "NANOMINER_ALGO=\"ethash\"\n" \
-               "NANOMINER_TEMPLATE=\"0x011ABFc17beFb8270398F0CC99801E326B8B13D8\"\n" \
-               "NANOMINER_URL=\"eu-eth.hiveon.net:4444 eu-eth.hiveon.net:14444\"\n" \
-               "NANOMINER_PASS=\"x\"\n" \
-               "NANOMINER_USER_CONFIG=\"coin = ETH\nrigName = Rig_rrrr\"\n" \
-               "META='{\"nanominer\": {\"coin\": \"ETH\"}}'"
+        if len(config) == 0:
+            return base_config
+        config = config[0]
+        base_config += f"MINER=\"{config['fs']['miner']['name']}\""
+        return base_config
+
+    def generate_wallet(self, config, farm):
+        if len(config) == 0:
+            return ""
+
+        config = config[0]
+        wallet = db.wallets.find_one({
+            "_id": ObjectId(config['fs']['wallet_id']['$oid'])
+        })
+        config.update({"wallet": wallet})
+
+        base_wallet = f"NANOMINER_ALGO=\"{config['fs']['miner']['algo']}\"\n" \
+                      f"NANOMINER_TEMPLATE=\"{self.parseTemplate(farm, config, config['fs']['miner']['wallet_template'])}\"\n" \
+                      f"NANOMINER_URL=\"{self.parseTemplate(farm, config, config['fs']['miner']['pool_template'])}\"\n" \
+                      f"NANOMINER_PASS=\"{config['fs']['miner']['pass']}\"\n" \
+                      f"NANOMINER_USER_CONFIG=\"{self.parseTemplate(farm, config, config['fs']['miner']['extra'])}\"\n" \
+                      "META='{\"" + config['fs']['miner']['name'] + "\": {\"coin\": \"" + config['fs']['coin'] + "\"}}'"
+        return base_wallet
+
+    def parseTemplate(self, farm, config, str):
+        return str.replace('%WAL%', config['wallet']['address']).replace('%WORKER_NAME%', farm['workers'][0]['name']) \
+            .replace('%URL%', reduce(lambda old, new: old + new + "\n", config['fs']['pool']['urls'])) \
+            .replace('%COIN%', config['fs']['coin'])
