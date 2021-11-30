@@ -36,12 +36,14 @@ class APIWorker(Resource):
                 "jsonrpc": "2.0",
                 "result": {
                     "rig_name": farm['workers'][0]['name'],
-                    "repository_list": "deb http://vicart.ovh:8081/repository/antos bionic main\n"
+                    "repository_list": "#deb http://vicart.ovh:8081/repository/antos bionic main\n"
                                        "deb http://vicart.ovh:8081/repository/antos-proxy bionic main\n"
-                                       "deb-src http://cz.archive.ubuntu.com/ubuntu/ bionic main\n",
+                                       "deb-src http://cz.archive.ubuntu.com/ubuntu/ bionic main\n"
+                                       "deb http://download.hiveos.farm/repo/binary/ /",
                     "config": self.generate_config(rig_id, password, farm, config),
                     "wallet": self.generate_wallet(config, farm),
-                    "autofan": "en"
+                    "autofan": self.generate_autofan(),
+                    "amd_oc": self.generate_amd_oc()
                 },
                 "id": None
             }
@@ -100,8 +102,8 @@ class APIWorker(Resource):
         return worker
 
     def generate_config(self, rig_id, passwd, farm, config):
-        base_config = "HIVE_HOST_URL=\"http://172.29.128.1\"\n" \
-                      "API_HOST_URL=\"http://172.29.128.1\"\n" \
+        base_config = "HIVE_HOST_URL=\"http://192.168.88.59\"\n" \
+                      "API_HOST_URL=\"http://192.168.88.59\"\n" \
                       f"RIG_ID={rig_id}\n" \
                       f"RIG_PASSWD=\"{passwd}\"\n" \
                       f"WORKER_NAME=\"{farm['workers'][0]['name']}\"\n" \
@@ -125,15 +127,50 @@ class APIWorker(Resource):
         })
         config.update({"wallet": wallet})
 
-        base_wallet = f"NANOMINER_ALGO=\"{config['fs']['miner']['algo']}\"\n" \
-                      f"NANOMINER_TEMPLATE=\"{self.parseTemplate(farm, config, config['fs']['miner']['wallet_template'])}\"\n" \
-                      f"NANOMINER_URL=\"{self.parseTemplate(farm, config, config['fs']['miner']['pool_template'])}\"\n" \
-                      f"NANOMINER_PASS=\"{config['fs']['miner']['pass']}\"\n" \
-                      f"NANOMINER_USER_CONFIG=\"{self.parseTemplate(farm, config, config['fs']['miner']['extra'])}\"\n" \
-                      "META='{\"" + config['fs']['miner']['name'] + "\": {\"coin\": \"" + config['fs']['coin'] + "\"}}'"
-        return base_wallet
+        miner = config['fs']['miner']['name']
+
+        if miner == "nanominer":
+            return f"NANOMINER_ALGO=\"{config['fs']['miner']['algo']}\"\n" \
+                          f"NANOMINER_TEMPLATE=\"{self.parseTemplate(farm, config, config['fs']['miner']['wallet_template'])}\"\n" \
+                          f"NANOMINER_URL=\"{self.parseTemplate(farm, config, config['fs']['miner']['pool_template'])}\"\n" \
+                          f"NANOMINER_PASS=\"{config['fs']['miner']['pass']}\"\n" \
+                          f"NANOMINER_USER_CONFIG=\"{self.parseTemplate(farm, config, config['fs']['miner']['extra'])}\"\n" \
+                          "META='{\"" + config['fs']['miner']['name'] + "\": {\"coin\": \"" + config['fs']['coin'] + "\"}}'"
+        elif miner == "phoenixminer":
+            return f"PHOENIXMINER_URL=\"{self.parseTemplate(farm, config, config['fs']['miner']['wallet_template'])}\"\n" \
+                   f"PHOENIXMINER_USER_CONFIG='{self.parseTemplate(farm, config, config['fs']['miner']['extra'])}'\n" \
+                   "META='{\"" + config['fs']['miner']['name'] + "\": {\"coin\": \"" + config['fs']['coin'] + "\"}}'"
+
+        return ""
 
     def parseTemplate(self, farm, config, str):
         return str.replace('%WAL%', config['wallet']['address']).replace('%WORKER_NAME%', farm['workers'][0]['name']) \
             .replace('%URL%', reduce(lambda old, new: old + new + "\n", config['fs']['pool']['urls'])) \
             .replace('%COIN%', config['fs']['coin'])
+
+    def generate_autofan(self):
+        return "ENABLED=1\n" \
+               "TARGET_TEMP=85\n" \
+               "TARGET_MEM_TEMP=90\n" \
+               "MIN_FAN=65\n" \
+               "MAX_FAN=100\n" \
+               "CRITICAL_TEMP=90\n" \
+               "CRITICAL_TEMP_ACTION=\"\"\n" \
+               "NO_AMD=\n" \
+               "REBOOT_ON_ERROR=\n" \
+               "SMART_MODE=\n"
+
+    def generate_amd_oc(self):
+        return "CORE_CLOCK=\"1044\"\n" \
+               "CORE_STATE=\"1\"\n" \
+               "CORE_VDDC=\"850\"\n" \
+               "MEM_CLOCK=\"1900\"\n" \
+               "MEM_STATE=\"1\"\n" \
+               "MVDD=\"850\"\n" \
+               "VDDCI=\"850\"\n" \
+               "FAN=\"64\"\n" \
+               "PL=\"\"\n" \
+               "REF=\"20\"\n" \
+               "SOCCLK=\"\"\n" \
+               "SOCVDDMAX=\"\"\n" \
+               "AGGRESSIVE=1\n"
