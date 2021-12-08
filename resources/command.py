@@ -20,17 +20,31 @@ class Command(Resource):
         if rig_owner['user_id'] != current_identity.id:
             return {"error": "forbidden"}, 403
 
-        db.commands.insert_one({
-            "rig_id": int(rig),
-            "command": "batch",
-            "commands": [
-                {
-                    "command": "exec",
-                    "exec": command
-                }
-            ],
+        base_command = {
+            "rig_id": int(rig)
+        }
+
+        if command == "batch":
+            command_parameter = request.json['command_parameter']
+            base_command.update({
+                "command": "batch",
+                "commands": [
+                    {
+                        "command": "exec",
+                        "exec": command_parameter
+                    }
+                ]
+            })
+        else:
+            base_command.update({
+                "command": command
+            })
+
+        base_command.update({
             "run": False
         })
+
+        db.commands.insert_one(base_command)
         return 200
 
     @cross_origin()

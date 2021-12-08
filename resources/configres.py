@@ -22,13 +22,32 @@ class Config(Resource):
         if not self.check_user(rig_id):
             return {}, 403
 
-        fs = request.json['fs_id']
-        db.config.update({
-            "rig_id": rig_id
-        }, {
-            "rig_id": rig_id,
-            "flightsheet": fs
-        }, True)
+        type = request.args['type']
+        if type == "fs":
+            fs = request.json['fs_id']
+            db.config.update_one({
+                "rig_id": rig_id
+            }, {
+                "$set": {
+                    "flightsheet": fs
+                }
+            }, True)
+        elif type == "autofan":
+            autofan = request.json['autofan']
+            autofan['minFanSpeed'] = int(autofan['minFanSpeed'])
+            autofan['maxFanSpeed'] = int(autofan['maxFanSpeed'])
+            autofan['targetCoreTemp'] = int(autofan['targetCoreTemp'])
+            autofan['targetMemTemp'] = int(autofan['targetMemTemp'])
+            autofan['criticalTemp'] = int(autofan['criticalTemp'])
+            db.config.update_one({
+                "rig_id": rig_id
+            }, {
+                "$set": {
+                    "autofan": autofan
+                }
+            })
+        else:
+            return {"error": "no type provided"}, 500
         return {}, 200
 
     @jwt_required()
@@ -37,9 +56,18 @@ class Config(Resource):
         if not self.check_user(rig_id):
             return {}, 403
 
-        db.config.delete_one({
-            "rig_id": rig_id
-        })
+        type = request.args['type']
+
+        if type == "fs":
+            db.config.update_one({
+                "rig_id": rig_id
+            }, {
+                "$set": {
+                    "flightsheet": None
+                }
+            })
+        else:
+            return {"error": "no type provided"}, 500
         return {}, 200
 
     @cross_origin()

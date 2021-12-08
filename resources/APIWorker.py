@@ -29,7 +29,7 @@ class APIWorker(Resource):
             config = db.config.aggregate(
                 [{"$match": {"rig_id": rig_id}}, {"$set": {"fs_id": {"$toObjectId": "$flightsheet"}}},
                  {"$lookup": {"from": "flightsheets", "localField": "fs_id", "foreignField": "_id", "as": "fs"}},
-                 {"$project": {"fs": {"$arrayElemAt": ["$fs", 0]}, "rig_id": 1}}])
+                 {"$project": {"fs": {"$arrayElemAt": ["$fs", 0]}, "rig_id": 1, "autofan": 1}}])
             config = json.loads(json_util.dumps(config))
 
             resp = {
@@ -41,9 +41,9 @@ class APIWorker(Resource):
                                        "deb-src http://cz.archive.ubuntu.com/ubuntu/ bionic main\n"
                                        "deb http://download.hiveos.farm/repo/binary/ /",
                     "config": self.generate_config(rig_id, password, farm, config),
-                    "wallet": self.generate_wallet(config, farm),
-                    "autofan": self.generate_autofan(),
-                    "amd_oc": self.generate_amd_oc()
+                    "wallet": self.generate_wallet(rig_id, farm, config),
+                    "autofan": self.generate_autofan(config),
+                    "amd_oc": ""  # self.generate_amd_oc()
                 },
                 "id": None
             }
@@ -52,7 +52,8 @@ class APIWorker(Resource):
             data = request.get_json(force=True)
             rig_id = int(request.args.get('id_rig'))
             password = data['params']['passwd']
-            if self.hello(rig_id, password) is None:
+            farm = self.hello(rig_id, password)
+            if farm is None:
                 return {'error': 'rig not found'}, 404
             db.stats.update({
                 "rig_id": rig_id
@@ -81,6 +82,23 @@ class APIWorker(Resource):
             db.commands.delete_one({
                 "_id": ObjectId(command['_id']['$oid'])
             })
+
+            config = db.config.aggregate(
+                [{"$match": {"rig_id": rig_id}}, {"$set": {"fs_id": {"$toObjectId": "$flightsheet"}}},
+                 {"$lookup": {"from": "flightsheets", "localField": "fs_id", "foreignField": "_id", "as": "fs"}},
+                 {"$project": {"fs": {"$arrayElemAt": ["$fs", 0]}, "rig_id": 1, "autofan": 1}}])
+            config = json.loads(json_util.dumps(config))
+
+            if command['command'] == 'config':
+                command.update({
+                    "config": self.generate_config(rig_id, password, farm, config),
+                    "wallet": self.generate_wallet(rig_id, farm, config)
+                })
+            elif command['command'] == 'autofan':
+                command.update({
+                    "autofan": self.generate_autofan(config)
+                })
+
             return {
                        "jsonrpc": "2.0",
                        "result": command
@@ -102,8 +120,8 @@ class APIWorker(Resource):
         return worker
 
     def generate_config(self, rig_id, passwd, farm, config):
-        base_config = "HIVE_HOST_URL=\"http://192.168.88.59\"\n" \
-                      "API_HOST_URL=\"http://192.168.88.59\"\n" \
+        base_config = "HIVE_HOST_URL=\"http://192.168.31.27\"\n" \
+                      "API_HOST_URL=\"http://192.168.31.27\"\n" \
                       f"RIG_ID={rig_id}\n" \
                       f"RIG_PASSWD=\"{passwd}\"\n" \
                       f"WORKER_NAME=\"{farm['workers'][0]['name']}\"\n" \
@@ -117,7 +135,7 @@ class APIWorker(Resource):
         base_config += f"MINER=\"{config['fs']['miner']['name']}\""
         return base_config
 
-    def generate_wallet(self, config, farm):
+    def generate_wallet(self, rig_id, farm, config):
         if len(config) == 0:
             return ""
 
@@ -131,11 +149,11 @@ class APIWorker(Resource):
 
         if miner == "nanominer":
             return f"NANOMINER_ALGO=\"{config['fs']['miner']['algo']}\"\n" \
-                          f"NANOMINER_TEMPLATE=\"{self.parseTemplate(farm, config, config['fs']['miner']['wallet_template'])}\"\n" \
-                          f"NANOMINER_URL=\"{self.parseTemplate(farm, config, config['fs']['miner']['pool_template'])}\"\n" \
-                          f"NANOMINER_PASS=\"{config['fs']['miner']['pass']}\"\n" \
-                          f"NANOMINER_USER_CONFIG=\"{self.parseTemplate(farm, config, config['fs']['miner']['extra'])}\"\n" \
-                          "META='{\"" + config['fs']['miner']['name'] + "\": {\"coin\": \"" + config['fs']['coin'] + "\"}}'"
+                   f"NANOMINER_TEMPLATE=\"{self.parseTemplate(farm, config, config['fs']['miner']['wallet_template'])}\"\n" \
+                   f"NANOMINER_URL=\"{self.parseTemplate(farm, config, config['fs']['miner']['pool_template'])}\"\n" \
+                   f"NANOMINER_PASS=\"{config['fs']['miner']['pass']}\"\n" \
+                   f"NANOMINER_USER_CONFIG=\"{self.parseTemplate(farm, config, config['fs']['miner']['extra'])}\"\n" \
+                   "META='{\"" + config['fs']['miner']['name'] + "\": {\"coin\": \"" + config['fs']['coin'] + "\"}}'"
         elif miner == "phoenixminer":
             return f"PHOENIXMINER_URL=\"{self.parseTemplate(farm, config, config['fs']['miner']['wallet_template'])}\"\n" \
                    f"PHOENIXMINER_USER_CONFIG='{self.parseTemplate(farm, config, config['fs']['miner']['extra'])}'\n" \
@@ -148,17 +166,26 @@ class APIWorker(Resource):
             .replace('%URL%', reduce(lambda old, new: old + new + "\n", config['fs']['pool']['urls'])) \
             .replace('%COIN%', config['fs']['coin'])
 
-    def generate_autofan(self):
-        return "ENABLED=1\n" \
-               "TARGET_TEMP=85\n" \
-               "TARGET_MEM_TEMP=90\n" \
-               "MIN_FAN=65\n" \
-               "MAX_FAN=100\n" \
-               "CRITICAL_TEMP=90\n" \
-               "CRITICAL_TEMP_ACTION=\"\"\n" \
-               "NO_AMD=\n" \
-               "REBOOT_ON_ERROR=\n" \
-               "SMART_MODE=\n"
+    def generate_autofan(self, config):
+        if len(config) == 0:
+            return "ENABLED=0"
+
+        config = config[0]
+        if "autofan" not in config:
+            return "ENABLED=0"
+
+        autofan = config['autofan']
+
+        return f"ENABLED={1 if autofan['enabled'] else 0}\n" \
+               f"TARGET_TEMP={autofan['targetCoreTemp']}\n" \
+               f"TARGET_MEM_TEMP={autofan['targetMemTemp']}\n" \
+               f"MIN_FAN={autofan['minFanSpeed']}\n" \
+               f"MAX_FAN={autofan['maxFanSpeed']}\n" \
+               f"CRITICAL_TEMP={autofan['criticalTemp']}\n" \
+               f"CRITICAL_TEMP_ACTION=\"\"\n" \
+               f"NO_AMD={1 if autofan['noAmd'] else 0}\n" \
+               f"REBOOT_ON_ERROR={1 if autofan['rebootOnError'] else 0}\n" \
+               f"SMART_MODE={1 if autofan['smartMode'] else 0}\n"
 
     def generate_amd_oc(self):
         return "CORE_CLOCK=\"1044\"\n" \
