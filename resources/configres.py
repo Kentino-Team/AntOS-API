@@ -46,6 +46,15 @@ class Config(Resource):
                     "autofan": autofan
                 }
             })
+        elif type == 'oc':
+            oc = request.json['oc_id']
+            db.config.update_one({
+                "rig_id": rig_id
+            }, {
+                "$set": {
+                    "oc_template": oc
+                }
+            })
         else:
             return {"error": "no type provided"}, 500
         return {}, 200
@@ -64,6 +73,14 @@ class Config(Resource):
             }, {
                 "$set": {
                     "flightsheet": None
+                }
+            })
+        elif type == 'oc':
+            db.config.update_one({
+                "rig_id": rig_id
+            }, {
+                "$set": {
+                    "oc_template": None
                 }
             })
         else:

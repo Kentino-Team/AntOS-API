@@ -16,6 +16,7 @@ from resources.user_profile import UserProfile
 from resources.configres import Config
 from resources.pools import Pools
 from resources.miner import Miner
+from resources.oc_templates import OCTemplates
 
 app = Flask(__name__, static_url_path='', static_folder='web/static', template_folder='web/templates')
 
@@ -40,6 +41,7 @@ api.add_resource(UserProfile, '/user/profile')
 api.add_resource(Config, '/config/<rig_id>')
 api.add_resource(Pools, '/pools')
 api.add_resource(Miner, '/miners')
+api.add_resource(OCTemplates, '/oc_templates/<id>/<rig_id>', '/oc_templates/<id>/', '/oc_templates/<id>', '/oc_templates')
 
 
 @app.route('/')

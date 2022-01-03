@@ -29,7 +29,7 @@ class APIWorker(Resource):
             config = db.config.aggregate(
                 [{"$match": {"rig_id": rig_id}}, {"$set": {"fs_id": {"$toObjectId": "$flightsheet"}}},
                  {"$lookup": {"from": "flightsheets", "localField": "fs_id", "foreignField": "_id", "as": "fs"}},
-                 {"$project": {"fs": {"$arrayElemAt": ["$fs", 0]}, "rig_id": 1, "autofan": 1}}])
+                 {"$project": {"fs": {"$arrayElemAt": ["$fs", 0]}, "rig_id": 1, "autofan": 1, "oc_template": 1}}])
             config = json.loads(json_util.dumps(config))
 
             resp = {
@@ -43,7 +43,8 @@ class APIWorker(Resource):
                     "config": self.generate_config(rig_id, password, farm, config),
                     "wallet": self.generate_wallet(rig_id, farm, config),
                     "autofan": self.generate_autofan(config),
-                    "amd_oc": ""  # self.generate_amd_oc()
+                    "amd_oc": self.generate_amd_oc(config),
+                    "nvidia_oc": self.generate_nvidia_oc(config)
                 },
                 "id": None
             }
@@ -86,7 +87,7 @@ class APIWorker(Resource):
             config = db.config.aggregate(
                 [{"$match": {"rig_id": rig_id}}, {"$set": {"fs_id": {"$toObjectId": "$flightsheet"}}},
                  {"$lookup": {"from": "flightsheets", "localField": "fs_id", "foreignField": "_id", "as": "fs"}},
-                 {"$project": {"fs": {"$arrayElemAt": ["$fs", 0]}, "rig_id": 1, "autofan": 1}}])
+                 {"$project": {"fs": {"$arrayElemAt": ["$fs", 0]}, "rig_id": 1, "autofan": 1, "oc_template": 1}}])
             config = json.loads(json_util.dumps(config))
 
             if command['command'] == 'config':
@@ -97,6 +98,10 @@ class APIWorker(Resource):
             elif command['command'] == 'autofan':
                 command.update({
                     "autofan": self.generate_autofan(config)
+                })
+            elif command['command'] == 'amd_oc':
+                command.update({
+                    "amd_oc": self.generate_amd_oc(config)
                 })
 
             return {
@@ -120,8 +125,8 @@ class APIWorker(Resource):
         return worker
 
     def generate_config(self, rig_id, passwd, farm, config):
-        base_config = "HIVE_HOST_URL=\"http://192.168.31.27\"\n" \
-                      "API_HOST_URL=\"http://192.168.31.27\"\n" \
+        base_config = "HIVE_HOST_URL=\"http://192.168.31.85\"\n" \
+                      "API_HOST_URL=\"http://192.168.31.85\"\n" \
                       f"RIG_ID={rig_id}\n" \
                       f"RIG_PASSWD=\"{passwd}\"\n" \
                       f"WORKER_NAME=\"{farm['workers'][0]['name']}\"\n" \
@@ -187,17 +192,55 @@ class APIWorker(Resource):
                f"REBOOT_ON_ERROR={1 if autofan['rebootOnError'] else 0}\n" \
                f"SMART_MODE={1 if autofan['smartMode'] else 0}\n"
 
-    def generate_amd_oc(self):
-        return "CORE_CLOCK=\"1044\"\n" \
-               "CORE_STATE=\"1\"\n" \
-               "CORE_VDDC=\"850\"\n" \
-               "MEM_CLOCK=\"1900\"\n" \
-               "MEM_STATE=\"1\"\n" \
-               "MVDD=\"850\"\n" \
-               "VDDCI=\"850\"\n" \
-               "FAN=\"64\"\n" \
-               "PL=\"\"\n" \
-               "REF=\"20\"\n" \
-               "SOCCLK=\"\"\n" \
-               "SOCVDDMAX=\"\"\n" \
-               "AGGRESSIVE=1\n"
+    def generate_amd_oc(self, config):
+
+        if len(config) == 0:
+            return ""
+
+        config = config[0]
+
+        if config['oc_template'] == '':
+            return ''
+
+        oc = db.oc_templates.find({
+            "_id": ObjectId(config['oc_template'])
+        })
+        oc = json.loads(json_util.dumps(oc))
+
+        oc = oc['amd']
+
+        return f"CORE_CLOCK=\"{oc['cc']}\"\n" \
+               f"CORE_STATE=\"{oc['cs']}\"\n" \
+               f"CORE_VDDC=\"{oc['cv']}\"\n" \
+               f"MEM_CLOCK=\"{oc['mc']}\"\n" \
+               f"MEM_STATE=\"{oc['ms']}\"\n" \
+               f"MVDD=\"{oc['mv']}\"\n" \
+               f"VDDCI=\"{oc['mcv']}\"\n" \
+               f"FAN=\"{oc['fan']}\"\n" \
+               f"PL=\"{oc['pw']}\"\n" \
+               "REF=\"\"\n" \
+               f"SOCCLK=\"{oc['soc_f']}\"\n" \
+               f"SOCVDDMAX=\"{oc['vddmax']}\"\n" \
+               f"AGGRESSIVE={1 if oc['aggressive_undervolting'] else 0}\n"
+
+    def generate_nvidia_oc(self, config):
+
+        if len(config) == 0:
+            return ""
+
+        config = config[0]
+
+        if config['oc_template'] == '':
+            return ''
+
+        oc = db.oc_templates.find({
+            "_id": ObjectId(config['oc_template'])
+        })
+        oc = json.loads(json_util.dumps(oc))
+
+        oc = oc['nvidia']
+
+        return f"CLOCK=\"{oc['cco']}\"\n" \
+               f"MEM=\"{oc['mc']}\"\n" \
+               f"FAN=\"{oc['fan']}\"\n" \
+               f"PLIMIT=\"{oc['pw']}\"\n"
