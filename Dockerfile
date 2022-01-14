@@ -4,7 +4,7 @@ RUN python -m pip install --upgrade pip
 
 RUN pip3 install pipenv
 
-COPY ./AntOS-API /app
+COPY ./ /app
 
 WORKDIR /app
 
