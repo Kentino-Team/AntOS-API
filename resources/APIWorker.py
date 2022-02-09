@@ -24,7 +24,7 @@ class APIWorker(Resource):
                 return {'error': 404, 'message': 'no worker found'}, 404
             db.hardwares.update_one({
                 "rig_id": rig_id
-            }, {"$set": {"rig_id": rig_id, "hardwares": request.json['params']}}, True)
+            }, {"$set": {"rig_id": rig_id, "hardwares": request.json['params']}}, upsert=True)
 
             config = db.config.aggregate(
                 [{"$match": {"rig_id": rig_id}}, {"$set": {"fs_id": {"$toObjectId": "$flightsheet"}}},
@@ -64,7 +64,7 @@ class APIWorker(Resource):
                     "timestamp": datetime.now(),
                     "stats": data['params']
                 }
-            }, True)
+            }, upsert=True)
             command = db.commands.find_one({
                 "rig_id": rig_id,
                 "run": False
