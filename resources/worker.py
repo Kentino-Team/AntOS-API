@@ -29,7 +29,7 @@ class Worker(Resource):
 
         password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
 
-        db.farms.update({"_id": ObjectId(farm_id)}, {"$addToSet": {"workers": {
+        db.farms.update_one({"_id": ObjectId(farm_id)}, {"$addToSet": {"workers": {
             "name": "no_name",
             "id": new_worker,
             "pwd": password
