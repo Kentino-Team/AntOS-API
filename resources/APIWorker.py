@@ -22,7 +22,7 @@ class APIWorker(Resource):
             farm = self.hello(rig_id, password)
             if farm is None:
                 return {'error': 404, 'message': 'no worker found'}, 404
-            db.hardwares.update({
+            db.hardwares.update_one({
                 "rig_id": rig_id
             }, {"rig_id": rig_id, "hardwares": request.json['params']}, True)
 
@@ -56,7 +56,7 @@ class APIWorker(Resource):
             farm = self.hello(rig_id, password)
             if farm is None:
                 return {'error': 'rig not found'}, 404
-            db.stats.update({
+            db.stats.update_one({
                 "rig_id": rig_id
             }, {
                 "rig_id": rig_id,
