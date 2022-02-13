@@ -20,7 +20,7 @@ from resources.oc_templates import OCTemplates
 
 app = Flask(__name__, static_url_path='', static_folder='web/static', template_folder='web/templates')
 
-app.config['MONGO_URI'] = "mongodb://admin:pcpraha2022@172.17.0.3:27017/antos?authSource=admin"
+app.config['MONGO_URI'] = "mongodb://admin:Xolider500_%40@vicart.ovh:27017/antos?authSource=admin"
 
 api = Api(app)
 
